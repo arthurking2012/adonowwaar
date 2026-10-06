@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ომების ანიმაციური 2D რუკა • ისტორიული ბრძოლების გენერატორი (StandAlone)</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@400;500;600;700;800&family=Cinzel:wght@700&display=swap" rel="stylesheet">
+</head>
+<body class="theme-dark">
+  <!-- Application Container -->
+  <div class="app-container" id="appRoot">
+    
+    <!-- Top Global Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="app-logo">
+          <span class="logo-icon">⚔️</span>
+          <div class="logo-text">
+            <h1>WAR MAP GENERATOR 2D</h1>
+            <span class="logo-sub">სატელიტური, ტოპოგრაფიული და ისტორიული კამპანიების გენერატორი</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <div class="active-scenario-badge" id="activeScenarioBadge">
+          <span class="scenario-status-dot"></span>
+          <span id="activeScenarioTitle">აფხაზეთის ომი (1992–1993 წწ.)</span>
+          <span class="scenario-period-tag" id="activeScenarioPeriod">1992–1993 წწ.</span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <button class="btn btn-secondary btn-sm" id="btnToggleFullscreen" title="სრული ეკრანი (F)">
+          <span class="icon">⛶</span> სრული ეკრანი
+        </button>
+        <button class="btn btn-secondary btn-sm" id="btnExportJson" title="სცენარის შენახვა">
+          <span class="icon">💾</span> JSON
+        </button>
+        <button class="btn btn-primary btn-sm" id="btnQuickRender" title="ვიდეო ექსპორტი">
+          <span class="icon">🎬</span> ვიდეოს გენერაცია
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace Layout -->
+    <div class="app-workspace">
+      
+      <!-- Left Sidebar: Controls, Prompts, Presets, Settings -->
+      <aside class="sidebar-left" id="sidebarLeft">
+        
+        <!-- Tabs Navigation -->
+        <nav class="sidebar-tabs">
+          <button class="tab-btn active" data-tab="tab-presets">📜 შაბლონები</button>
+          <button class="tab-btn" data-tab="tab-prompt">✍️ პრომპტი</button>
+          <button class="tab-btn" data-tab="tab-maps">🗺️ რუკა</button>
+          <button class="tab-btn" data-tab="tab-editor">🛠️ რედაქტორი</button>
+          <button class="tab-btn" data-tab="tab-export">🎥 ვიდეო</button>
+        </nav>
+
+        <!-- Tab Content 1: Historical Presets -->
+        <section class="tab-pane active" id="tab-presets">
+          <div class="panel-section">
+            <h3 class="section-title">ისტორიული ომებისა და ბრძოლების შაბლონები</h3>
+            <p class="section-desc">აირჩიეთ მზა ისტორიული სცენარი ზუსტი ქრონოლოგიითა და ტაქტიკური რუკით:</p>
+            <div class="preset-cards-grid" id="presetCardsContainer"></div>
+          </div>
+        </section>
+
+        <!-- Tab Content 2: Natural Language Prompt -->
+        <section class="tab-pane" id="tab-prompt">
+          <div class="panel-section">
+            <h3 class="section-title">ისტორიული ომის აღწერა (Prompt)</h3>
+            <p class="section-desc">შეიყვანეთ ისტორიული ომის, ბრძოლის ან სამხედრო კამპანიის აღწერა ნებისმიერი მოცულობით (მაგ: ქალაქები, ჯარების რაოდენობა, შეტევები, უკანდახევები, ვიდეოს დრო):</p>
+            
+            <div class="prompt-input-wrapper">
+              <textarea 
+                id="promptTextInput" 
+                class="prompt-textarea" 
+                rows="9" 
+                placeholder="ჩაწერეთ თქვენი ისტორიული სცენარი ქართულად ან ინგლისურად...
+მაგალითად:
+1992 წლის 14 აგვისტო – 1993 წლის 27 სექტემბერი. აფხაზეთის ომი.
+ვიდეოს ხანგრძლივობა: 3 წუთი.
+ქართული გვარდია გენერალ ყარყარაშვილის მეთაურობით გადადის ენგურზე და იკავებს სოხუმს...
+1993 წლის 27 სექტემბერს სოხუმი ეცემა. 300 000 დევნილი იხევს ჭუბერის უღელტეხილისკენ..."
+              ></textarea>
+            </div>
+
+            <div class="prompt-options-row">
+              <div class="control-group">
+                <label for="promptVideoDuration">⏱️ ვიდეოს დრო:</label>
+                <select id="promptVideoDuration" class="form-select">
+                  <option value="auto">ავტომატური (ტექსტის მიხედვით)</option>
+                  <option value="1">1 წუთი (მოკლე)</option>
+                  <option value="3" selected>3 წუთი (სტანდარტული)</option>
+                  <option value="5">5 წუთი (დაწვრილებითი)</option>
+                  <option value="10">10 წუთი (ეპიკური კამპანია)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="prompt-actions-bar">
+              <button class="btn btn-primary btn-block btn-lg" id="btnGenerateFromPrompt">
+                <span class="icon">⚡</span> ომის რუკის გენერირება
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab Content 3: Map & Layer Controls -->
+        <section class="tab-pane" id="tab-maps">
+          <div class="panel-section">
+            <h3 class="section-title">რუკების მართვა და სატელიტური ფოტოები</h3>
+            
+            <div class="map-layer-selector">
+              <label class="layer-radio-card active">
+                <input type="radio" name="mapTileProvider" value="esri-satellite" checked>
+                <div class="layer-info">
+                  <strong>🛰️ სატელიტური რუკა (Esri Satellite)</strong>
+                  <span>რეალური ფოტოები, მთები, მდინარეები</span>
+                </div>
+              </label>
+
+              <label class="layer-radio-card">
+                <input type="radio" name="mapTileProvider" value="opentopo">
+                <div class="layer-info">
+                  <strong>🏔️ ტოპოგრაფიული რელიეფი</strong>
+                  <span>რელიეფის სიმაღლეები და ქედები</span>
+                </div>
+              </label>
+
+              <label class="layer-radio-card">
+                <input type="radio" name="mapTileProvider" value="osm-standard">
+                <div class="layer-info">
+                  <strong>🗺️ სტანდარტული რუკა (OSM)</strong>
+                  <span>საზღვრები, გზები, ქვეყნის სახელები</span>
+                </div>
+              </label>
+
+              <label class="layer-radio-card">
+                <input type="radio" name="mapTileProvider" value="carto-dark">
+                <div class="layer-info">
+                  <strong>⬛ ტაქტიკური მუქი რუკა</strong>
+                  <span>მაღალი კონტრასტის მუქი რუკა</span>
+                </div>
+              </label>
+            </div>
+
+            <div class="form-group mt-3">
+              <label>რუკის საკუთარი ფოტოს ატვირთვა:</label>
+              <input type="file" id="customMapImageInput" accept="image/*" class="file-input">
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab Content 4: Visual Scenario Editor -->
+        <section class="tab-pane" id="tab-editor">
+          <div class="panel-section">
+            <h3 class="section-title">სცენარის ვიზუალური რედაქტორი</h3>
+            <div class="editor-subsections" id="editorSubsectionsContainer">
+              <div class="editor-accordion active">
+                <div class="accordion-header">
+                  <span>🚩 მხარეები და ფერები</span>
+                  <button class="btn-icon" id="btnAddFactionBtn">+</button>
+                </div>
+                <div class="accordion-content" id="factionsListEditor"></div>
+              </div>
+
+              <div class="editor-accordion">
+                <div class="accordion-header">
+                  <span>🏰 ქალაქები და ციხეები</span>
+                  <button class="btn-icon" id="btnAddCityBtn">+</button>
+                </div>
+                <div class="accordion-content" id="citiesListEditor"></div>
+              </div>
+
+              <div class="editor-accordion">
+                <div class="accordion-header">
+                  <span>⚔️ არმიები და შენაერთები</span>
+                  <button class="btn-icon" id="btnAddArmyBtn">+</button>
+                </div>
+                <div class="accordion-content" id="armiesListEditor"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab Content 5: Video Export -->
+        <section class="tab-pane" id="tab-export">
+          <div class="panel-section">
+            <h3 class="section-title">ვიდეო რენდერინგი და ჩამოტვირთვა</h3>
+            <p class="section-desc">დააგენერირეთ სრული 2D ანიმაცია ვიდეო ფაილად (MP4 / WebM).</p>
+            
+            <div class="export-settings-box">
+              <div class="form-group">
+                <label>გაფართოება:</label>
+                <select id="exportResolutionSelect" class="form-select">
+                  <option value="1080p" selected>Full HD 1080p (1920x1080)</option>
+                  <option value="4k">Ultra HD 4K (3840x2160)</option>
+                  <option value="720p">HD 720p (1280x720)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>კადრების სიხშირე (FPS):</label>
+                <select id="exportFpsSelect" class="form-select">
+                  <option value="60" selected>60 FPS (ულტრა გლუვი)</option>
+                  <option value="30">30 FPS (სტანდარტული)</option>
+                </select>
+              </div>
+
+              <button class="btn btn-primary btn-block btn-lg mt-3" id="btnStartVideoExport">
+                <span class="icon">🎥</span> ვიდეოს დაგენერირება და ჩამოტვირთვა
+              </button>
+            </div>
+          </div>
+        </section>
+
+      </aside>
+
+      <!-- Center Main: Map Canvas & Animation Controls -->
+      <main class="main-canvas-area" id="mainCanvasContainer">
+        
+        <!-- Canvas Viewport -->
+        <div class="canvas-viewport" id="canvasViewport">
+          <canvas id="warMapCanvas" width="1920" height="1080"></canvas>
+          
+          <!-- Map Overlay HUD (Top Info Bar) -->
+          <div class="map-hud-overlay" id="mapHudOverlay">
+            <div class="hud-item hud-date" id="hudDateDisplay">1992 წლის 14 აგვისტო</div>
+            <div class="hud-item hud-event-title" id="hudEventTitle">ომის დაწყება და ენგურის გადაკვეთა</div>
+            <div class="hud-item hud-stats" id="hudStatsDisplay"></div>
+          </div>
+
+          <!-- Canvas Floating Controls (Zoom, Reset, Fullscreen) -->
+          <div class="canvas-floating-controls">
+            <button class="map-tool-btn" id="btnZoomIn" title="მიახლოება (+)">+</button>
+            <button class="map-tool-btn" id="btnZoomOut" title="დაშორება (-)">−</button>
+            <button class="map-tool-btn" id="btnResetView" title="ხედის გასწორება">🎯</button>
+            <button class="map-tool-btn" id="btnToggleGrid" title="ბადის ჩვენება">🌐</button>
+            <button class="map-tool-btn" id="btnToggleVoice" title="გახმოვანება (ხმა)">🔊</button>
+            <button class="map-tool-btn record-tool-btn" id="btnLiveScreenRecord" title="ეკრანის ვიდეო ჩაწერა (მხოლოდ რუკა)">⏺️</button>
+          </div>
+
+          <!-- Fullscreen Minimal HUD -->
+          <div class="fs-minimal-hud" id="fsMinimalHud" style="display: none;">
+            <button class="fs-hud-btn" id="btnFsPlayPause">▶</button>
+            <span class="fs-hud-time" id="fsHudTime">00:00 / 03:00</span>
+            <button class="fs-hud-btn record-tool-btn" id="btnFsRecord">⏺ ჩაწერა</button>
+            <button class="fs-hud-btn" id="btnFsExit">✕ გამოსვლა</button>
+          </div>
+        </div>
+
+        <!-- Bottom Animation & Timeline Control Bar -->
+        <footer class="timeline-bar">
+          <div class="playback-controls">
+            <button class="control-btn" id="btnJumpStart" title="დასაწყისში დაბრუნება">⏮</button>
+            <button class="control-btn" id="btnStepBack" title="წინა კადრი">⏪</button>
+            <button class="control-btn play-btn" id="btnPlayPause" title="დაკვრა / პაუზა (Space)">▶</button>
+            <button class="control-btn" id="btnStepForward" title="შემდეგი კადრი">⏩</button>
+            <button class="control-btn" id="btnJumpEnd" title="ბოლოში გადასვლა">⏭</button>
+          </div>
+
+          <div class="timeline-slider-container">
+            <div class="timeline-ticks-layer" id="timelineTicksLayer"></div>
+            <input type="range" id="timelineScrubber" class="timeline-scrubber" min="0" max="100" value="0" step="0.1">
+            <div class="timeline-progress-fill" id="timelineProgressFill"></div>
+          </div>
+
+          <div class="timeline-time-info">
+            <span id="currentTimeDisplay">00:00 / 03:00</span>
+            <select id="playbackSpeedSelect" class="speed-select">
+              <option value="0.5">0.5x</option>
+              <option value="1" selected>1.0x</option>
+              <option value="1.5">1.5x</option>
+              <option value="2">2.0x</option>
+              <option value="4">4.0x</option>
+            </select>
+          </div>
+        </footer>
+
+      </main>
+
+      <!-- Right Sidebar: Interactive Chronicle & Legend -->
+      <aside class="sidebar-right" id="sidebarRight">
+        <div class="sidebar-header">
+          <h3>📖 ომის ქრონიკა და მოვლენები</h3>
+        </div>
+        
+        <!-- Factions Legend -->
+        <div class="factions-legend-box" id="factionsLegendContainer"></div>
+
+        <!-- Keyframes Timeline List -->
+        <div class="chronicle-events-list" id="chronicleEventsList"></div>
+      </aside>
+
+    </div>
+
+    <!-- Video Preview Modal -->
+    <div class="video-preview-modal" id="videoPreviewModal" style="display: none;">
+      <div class="modal-backdrop"></div>
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3>🎬 ჩაწერილი ვიდეო</h3>
+          <button class="modal-close-btn" id="btnModalClose">✕</button>
+        </div>
+        <div class="modal-body">
+          <video id="recordedVideoPlayer" controls playsinline></video>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" id="btnModalDiscard">გაუქმება</button>
+          <a id="btnModalDownload" class="btn btn-primary" download="war_simulation.webm">⬇️ ვიდეოს ჩამოტვირთვა</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
